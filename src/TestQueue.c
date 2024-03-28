@@ -86,6 +86,26 @@ int newQueueSizeZero() {
     return TEST_SUCCESS;
 }
 
+/*
+ * Checks that enqueue adds only one value.
+ */
+int enqOneElement() {
+    Queue_enq(queue, (void *) 1);
+    assert(Queue_size(queue) == 1);
+    return TEST_SUCCESS;
+}
+
+/*
+ * Checks that enqueue and dequeue only add and remove the correct value and that size is valid.
+ */
+int enqAndDeqOneElement() {
+    Queue_enq(queue, (void *) 1);
+    assert(Queue_size(queue) == 1);
+    assert(Queue_deq(queue) == (void *) 1);
+    assert(Queue_size(queue) == 0);
+    return TEST_SUCCESS;
+}
+
 
 /*
  * Write more of your own test functions below (such as enqOneElement, enqAndDeqOneElement, ...)
@@ -99,6 +119,8 @@ int newQueueSizeZero() {
 int main() {
     runTest(newQueueIsNotNull);
     runTest(newQueueSizeZero);
+    runTest(enqOneElement);
+    runTest(enqAndDeqOneElement);
     /*
      * you will have to call runTest on all your test functions above, such as
      *
