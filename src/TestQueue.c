@@ -90,7 +90,7 @@ int newQueueSizeZero() {
  * Checks that enqueue adds only one value.
  */
 int enqOneElement() {
-    Queue_enq(queue, (void *) 1);
+    assert(Queue_enq(queue, (void *) 1) == true);
     assert(Queue_size(queue) == 1);
     return TEST_SUCCESS;
 }
@@ -103,6 +103,40 @@ int enqAndDeqOneElement() {
     assert(Queue_size(queue) == 1);
     assert(Queue_deq(queue) == (void *) 1);
     assert(Queue_size(queue) == 0);
+    return TEST_SUCCESS;
+}
+
+/*
+ * Check that enqueue adds two elements, dequeue removes and item and enqueue adds one more.
+ */
+int enqTwoAndDeqAndEnq() {
+    Queue_enq(queue, (void *) 1);
+    Queue_enq(queue, (void *) 2);
+    assert(Queue_size(queue) == 2);
+    assert(Queue_deq(queue) == (void *) 1);
+    Queue_enq(queue, (void *) 3);
+    assert(Queue_size(queue) == 2);
+    assert(Queue_deq(queue) == (void *) 2);
+    assert(Queue_deq(queue) == (void *) 3);
+    return TEST_SUCCESS;
+}
+
+/*
+ * Checks that NULL is returned when dequeue is called on empty queue.
+ */
+int deqAll() {
+    assert(Queue_deq(queue) == NULL);
+    return TEST_SUCCESS;
+}
+
+/*
+ * Checks that False is returned when enqueue is called on full queue.
+ */
+int enqAll() {
+    for (int i = 1; i <= 10; i++) {
+        assert(Queue_enq(queue, (void *) 1) == true);
+    }
+    assert(Queue_enq(queue, (void *) 2) == false);
     return TEST_SUCCESS;
 }
 
@@ -121,6 +155,9 @@ int main() {
     runTest(newQueueSizeZero);
     runTest(enqOneElement);
     runTest(enqAndDeqOneElement);
+    runTest(enqTwoAndDeqAndEnq);
+    runTest(deqAll);
+    runTest(enqAll);
     /*
      * you will have to call runTest on all your test functions above, such as
      *

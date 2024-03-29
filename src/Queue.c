@@ -31,7 +31,7 @@ bool Queue_enq(Queue* this, void* element) {
     } else if (element == NULL) {
         return false;
     } else {
-        this->array[this->size + 1] = element;
+        this->array[this->size] = element;
         this->size++;
     }
     return true;
