@@ -16,6 +16,12 @@ typedef struct BlockingQueue BlockingQueue;
 
 /* You should define your struct BlockingQueue here */
 struct BlockingQueue {
+    void **array;
+    int maxSize;
+    int size;
+    pthread_mutex_t mutex;
+    sem_t full;
+    sem_t empty;
 };
 
 /*

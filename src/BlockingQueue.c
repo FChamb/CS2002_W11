@@ -6,6 +6,9 @@
  */
 
 #include <stddef.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <semaphore.h>
 
 #include "BlockingQueue.h"
 
@@ -16,27 +19,80 @@
 
 
 BlockingQueue *new_BlockingQueue(int max_size) {
-    return NULL;
+    BlockingQueue* queue = (BlockingQueue*) malloc(sizeof(BlockingQueue));
+    if (queue == NULL) {
+        return NULL;
+    }
+
+    queue->array = (void**) malloc(sizeof(void*) * max_size);
+    if (queue->array == NULL) {
+        free(queue);
+        return NULL;
+    }
+
+    queue->maxSize = max_size;
+    queue->size = 0;
+    pthread_mutex_init(&(queue->mutex), NULL);
+    sem_init(&(queue->full), 0, 0);
+    sem_init(&(queue->empty), 0, max_size);
+
+    return queue;
 }
 
 bool BlockingQueue_enq(BlockingQueue* this, void* element) {
-    return false;
+    sem_wait(&(this->empty));
+    pthread_mutex_lock(&(this->mutex));
+
+    this->array[this->size] = element;
+    this->size++;
+
+    pthread_mutex_unlock(&(this->mutex));
+    sem_post(&(this->full));
+
+    return true;
 }
 
 void* BlockingQueue_deq(BlockingQueue* this) {
-    return NULL;
+    void* data;
+    sem_wait(&(this->full));
+    pthread_mutex_lock(&(this->mutex));
+
+    data = this->array[0];
+    for (int i = 1; i < this->size; i++) {
+        this->array[i - 1] = this->array[i];
+    }
+    this->size--;
+
+    pthread_mutex_unlock(&(this->mutex));
+    sem_post(&(this->empty));
+
+    return data;
 }
 
 int BlockingQueue_size(BlockingQueue* this) {
-    return -1;
+    pthread_mutex_lock(&(this->mutex));
+    int size = this->size;
+    pthread_mutex_unlock(&(this->mutex));
+    return size;
 }
 
 bool BlockingQueue_isEmpty(BlockingQueue* this) {
-    return false;
+    pthread_mutex_lock(&(this->mutex));
+    bool empty = (this->size == 0);
+    pthread_mutex_unlock(&(this->mutex));
+    return empty;
 }
 
 void BlockingQueue_clear(BlockingQueue* this) {
+    pthread_mutex_lock(&(this->mutex));
+    this->size = 0;
+    pthread_mutex_unlock(&(this->mutex));
 }
 
 void BlockingQueue_destroy(BlockingQueue* this) {
+    free(this->array);
+    pthread_mutex_destroy(&(this->mutex));
+    sem_destroy(&(this->full));
+    sem_destroy(&(this->empty));
+    free(this);
 }

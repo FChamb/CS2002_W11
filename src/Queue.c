@@ -6,7 +6,7 @@
  */
 
 #include <stddef.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #include "Queue.h"
 
@@ -17,11 +17,19 @@
 
 
 Queue *new_Queue(int max_size) {
-    Queue* queue1 = malloc(sizeof(Queue));
-    void *array1 = malloc(sizeof(int) * max_size);
-    queue1->array=array1;
-    queue1->maxSize = max_size;
-    struct Queue *queue = queue1;
+    Queue* queue = (Queue*) malloc(sizeof(Queue));
+    if (queue == NULL) {
+        return NULL;
+    }
+
+    queue->array = malloc(sizeof(void*) * max_size);
+    if (queue->array == NULL) {
+        return NULL;
+    }
+
+    queue->maxSize = max_size;
+    queue->size = 0;
+
     return queue;
 }
 
