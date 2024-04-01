@@ -7,8 +7,8 @@
 
 #include <stddef.h>
 #include <pthread.h>
-#include <stdlib.h>
 #include <semaphore.h>
+#include <stdlib.h>
 
 #include "BlockingQueue.h"
 

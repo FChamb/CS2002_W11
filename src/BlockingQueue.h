@@ -9,6 +9,10 @@
 #define BLOCKING_QUEUE_H_
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <stdlib.h>
 
 #include "Queue.h"
 
