@@ -88,6 +88,49 @@ int newQueueSizeZero() {
 }
 
 /*
+ * Checks that enqueue adds only one value.
+ */
+int enqOneElement() {
+    BlockingQueue_enq(queue, (void*) 1);
+    assert(BlockingQueue_size(queue) == 1);
+    return TEST_SUCCESS;
+}
+
+/*
+ * Checks that enqueue and dequeue only add and remove the correct value and that size is valid.
+ */
+int enqAndDeqOneElement() {
+    BlockingQueue_enq(queue, (void *) 1);
+    assert(BlockingQueue_size(queue) == 1);
+    assert(BlockingQueue_deq(queue) == (void *) 1);
+    assert(BlockingQueue_size(queue) == 0);
+    return TEST_SUCCESS;
+}
+
+/*
+ * Check that enqueue adds two elements, dequeue removes and item and enqueue adds one more.
+ */
+int enqTwoAndDeqAndEnq() {
+    BlockingQueue_enq(queue, (void *) 1);
+    BlockingQueue_enq(queue, (void *) 2);
+    assert(BlockingQueue_size(queue) == 2);
+    assert(BlockingQueue_deq(queue) == (void *) 1);
+    BlockingQueue_enq(queue, (void *) 3);
+    assert(BlockingQueue_size(queue) == 2);
+    assert(BlockingQueue_deq(queue) == (void *) 2);
+    assert(BlockingQueue_deq(queue) == (void *) 3);
+    return TEST_SUCCESS;
+}
+
+/*
+ * Checks that NULL is returned when dequeue is called on empty queue.
+ */
+int deqAll() {
+    assert(BlockingQueue_deq(queue) == NULL);
+    return TEST_SUCCESS;
+}
+
+/*
  * Write more of your own test functions below (such as enqOneElement, enqAndDeqOneElement, ...)
  * to help you verify correctness of your BlockingQueue.
  */
@@ -100,6 +143,11 @@ int newQueueSizeZero() {
 int main() {
     runTest(newQueueIsNotNull);
     runTest(newQueueSizeZero);
+    runTest(enqOneElement);
+    runTest(enqAndDeqOneElement);
+    runTest(enqTwoAndDeqAndEnq);
+    runTest(deqAll);
+
     /*
      * you will have to call runTest on all your test functions above, such as
      *
