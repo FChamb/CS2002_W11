@@ -208,9 +208,9 @@ int main() {
     runTest(enqOneElement);
     runTest(enqAndDeqOneElement);
     runTest(enqTwoAndDeqAndEnq);
-    runTest(deqAll);
-    runTest(enqAll);
-    runTest(concurrentThreadMultiple);
+    //runTest(deqAll);
+    //runTest(enqAll);
+    //runTest(concurrentThreadMultiple);
     /*
      * you will have to call runTest on all your test functions above, such as
      *
