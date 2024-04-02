@@ -133,7 +133,7 @@ int deqAll() {
  * Checks that False is returned when enqueue is called on full queue.
  */
 int enqAll() {
-    for (int i = 1; i <= 10; i++) {
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
         assert(Queue_enq(queue, (void *) 1) == true);
     }
     assert(Queue_enq(queue, (void *) 2) == false);

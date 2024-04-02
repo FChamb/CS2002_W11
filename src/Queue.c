@@ -34,7 +34,7 @@ Queue *new_Queue(int max_size) {
 }
 
 bool Queue_enq(Queue* this, void* element) {
-    if (this->size == this->maxSize - 1) {
+    if (this->size == this->maxSize) {
         return false;
     } else if (element == NULL) {
         return false;

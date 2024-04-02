@@ -7,12 +7,15 @@
 
 #include <stdio.h>
 #include <stddef.h>
+#include <unistd.h>
 
 #include "BlockingQueue.h"
 #include "myassert.h"
 
 
 #define DEFAULT_MAX_QUEUE_SIZE 20
+#define NUM_THREADS 5
+#define NUM_OPERATIONS 100
 
 /*
  * The queue to use during tests
@@ -102,6 +105,7 @@ int enqOneElement() {
 int enqAndDeqOneElement() {
     BlockingQueue_enq(queue, (void *) 1);
     assert(BlockingQueue_size(queue) == 1);
+
     assert(BlockingQueue_deq(queue) == (void *) 1);
     assert(BlockingQueue_size(queue) == 0);
     return TEST_SUCCESS;
@@ -114,9 +118,11 @@ int enqTwoAndDeqAndEnq() {
     BlockingQueue_enq(queue, (void *) 1);
     BlockingQueue_enq(queue, (void *) 2);
     assert(BlockingQueue_size(queue) == 2);
+
     assert(BlockingQueue_deq(queue) == (void *) 1);
     BlockingQueue_enq(queue, (void *) 3);
     assert(BlockingQueue_size(queue) == 2);
+
     assert(BlockingQueue_deq(queue) == (void *) 2);
     assert(BlockingQueue_deq(queue) == (void *) 3);
     return TEST_SUCCESS;
@@ -127,6 +133,62 @@ int enqTwoAndDeqAndEnq() {
  */
 int deqAll() {
     assert(BlockingQueue_deq(queue) == NULL);
+    return TEST_SUCCESS;
+}
+
+/*
+ * Checks that blocking waits for space in the queue before adding additional elements.
+ */
+int enqAll() {
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
+        assert(BlockingQueue_enq(queue, (void *) &i) == true);
+    }
+
+    BlockingQueue_enq(queue, (void *) 2);
+
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
+        BlockingQueue_deq(queue);
+    }
+
+    assert(BlockingQueue_size(queue) == 1);
+    assert(BlockingQueue_deq(queue) == (void *) 2);
+    return TEST_SUCCESS;
+}
+
+/*
+ * Helper function for what the threads should do in concurrentThreadMultiple.
+ */
+void *threadFunction(void *arg) {
+    queue = (BlockingQueue *) arg;
+    for (int i = 0; i < NUM_OPERATIONS; i++) {
+        assert(BlockingQueue_enq(queue, (void *) (intptr_t) i));
+        usleep(1000);
+        assert((intptr_t) BlockingQueue_deq(queue) == i);
+    }
+    pthread_exit(NULL);
+}
+
+/*
+ * Checks that blocking functionality enables multi threading interaction.
+ */
+int concurrentThreadMultiple() {
+    pthread_t threads[NUM_THREADS];
+    for (int i = 0; i < NUM_THREADS; i++) {
+        if (pthread_create(&threads[i], NULL, threadFunction, (void *) queue) != 0) {
+            fprintf(stderr, "Error creating thread %d\n", i);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        if (pthread_join(threads[i], NULL) != 0) {
+            fprintf(stderr, "Error joining thread %d\n", i);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    assert(BlockingQueue_isEmpty(queue));
+
     return TEST_SUCCESS;
 }
 
@@ -147,7 +209,8 @@ int main() {
     runTest(enqAndDeqOneElement);
     runTest(enqTwoAndDeqAndEnq);
     runTest(deqAll);
-
+    runTest(enqAll);
+    runTest(concurrentThreadMultiple);
     /*
      * you will have to call runTest on all your test functions above, such as
      *
