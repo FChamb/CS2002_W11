@@ -79,6 +79,7 @@ void runTest(int (*testFunction)()) {
  */
 int newQueueIsNotNull() {
     assert(queue != NULL);
+
     return TEST_SUCCESS;
 }
 
@@ -87,6 +88,7 @@ int newQueueIsNotNull() {
  */
 int newQueueSizeZero() {
     assert(BlockingQueue_size(queue) == 0);
+
     return TEST_SUCCESS;
 }
 
@@ -96,6 +98,17 @@ int newQueueSizeZero() {
 int enqOneElement() {
     BlockingQueue_enq(queue, (void*) 1);
     assert(BlockingQueue_size(queue) == 1);
+
+    return TEST_SUCCESS;
+}
+
+/*
+ * Checks that enqueueing a NULL element returns false.
+ */
+int enqNullElement() {
+    assert(BlockingQueue_enq(queue, NULL) == false);
+    assert(BlockingQueue_size(queue) == 0);
+
     return TEST_SUCCESS;
 }
 
@@ -108,6 +121,7 @@ int enqAndDeqOneElement() {
 
     assert(BlockingQueue_deq(queue) == (void *) 1);
     assert(BlockingQueue_size(queue) == 0);
+
     return TEST_SUCCESS;
 }
 
@@ -125,14 +139,48 @@ int enqTwoAndDeqAndEnq() {
 
     assert(BlockingQueue_deq(queue) == (void *) 2);
     assert(BlockingQueue_deq(queue) == (void *) 3);
+
     return TEST_SUCCESS;
 }
 
 /*
- * Checks that NULL is returned when dequeue is called on empty queue.
+ * Checks that adding several elements to a queue also dequeues the correct results.
+ */
+int enqAlldeqAll() {
+    void **array[DEFAULT_MAX_QUEUE_SIZE];
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
+        array[i - 1] = (void *) &i;
+        assert(BlockingQueue_enq(queue, (void *) &i) == true);
+    }
+    assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
+
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
+        void* val = array[i - 1];
+        assert(BlockingQueue_deq(queue) == val);
+    }
+    assert(BlockingQueue_size(queue) == 0);
+
+    return TEST_SUCCESS;
+}
+
+/*
+ * Checks that blocking waits for element to be added before removing additional elements.
  */
 int deqAll() {
-    assert(BlockingQueue_deq(queue) == NULL);
+    BlockingQueue_deq(queue);
+    assert(BlockingQueue_size(queue) == 0);
+
+    void* actual;
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
+        if (i == 1) {
+            actual = &i;
+        }
+        assert(BlockingQueue_enq(queue, (void *) &i) == true);
+    }
+
+    assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
+    assert(BlockingQueue_deq(queue) == actual);
+
     return TEST_SUCCESS;
 }
 
@@ -145,13 +193,16 @@ int enqAll() {
     }
 
     BlockingQueue_enq(queue, (void *) 2);
+    assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
 
     for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
         BlockingQueue_deq(queue);
     }
 
+    BlockingQueue_enq(queue, (void *) 2);
     assert(BlockingQueue_size(queue) == 1);
     assert(BlockingQueue_deq(queue) == (void *) 2);
+
     return TEST_SUCCESS;
 }
 
@@ -206,8 +257,10 @@ int main() {
     runTest(newQueueIsNotNull);
     runTest(newQueueSizeZero);
     runTest(enqOneElement);
+    runTest(enqNullElement);
     runTest(enqAndDeqOneElement);
     runTest(enqTwoAndDeqAndEnq);
+    runTest(enqAlldeqAll);
     runTest(deqAll);
     runTest(enqAll);
     //runTest(concurrentThreadMultiple);
