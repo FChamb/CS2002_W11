@@ -99,6 +99,7 @@ void *enqOneElement(void *arg) {
     int* element = malloc(sizeof(int));
     *element = 1;
     assert(BlockingQueue_enq(queue, element) == true);
+    free(element);
 
     return (void *) TEST_SUCCESS;
 }
@@ -205,6 +206,7 @@ int testEnqTwoAndDeqAndEnq() {
  * Helper function for testEnqAlldeqAll. Makes use of thread.
  */
 void *enqAlldeqAll(void *arg) {
+    queue = (BlockingQueue *) arg;
     void **array[DEFAULT_MAX_QUEUE_SIZE];
     for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
         int* element = malloc(sizeof(int));
@@ -235,44 +237,68 @@ int testEnqAlldeqAll() {
 }
 
 /*
+ * Helper function for testDeqBlocking. Makes use of thread.
+ */
+void *deqBlocking(void *arg) {
+    queue = (BlockingQueue *) arg;
+    BlockingQueue_deq(queue);
+    return (void *) TEST_SUCCESS;
+}
+
+/*
  * Checks that blocking waits for element to be added before removing additional elements.
  */
-int deqAll() {
-    BlockingQueue_deq(queue);
-    assert(BlockingQueue_size(queue) == 0);
+int testDeqBlocking() {
+    pthread_t thread;
+    int result = pthread_create(&thread, NULL, deqBlocking, (void *) queue);
+    assert(result == 0);
+    usleep(100);
 
-    void* actual;
-    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
-        if (i == 1) {
-            actual = &i;
-        }
-        assert(BlockingQueue_enq(queue, (void *) &i) == true);
-    }
+    int* element = malloc(sizeof(int));
+    *element = 1;
+    BlockingQueue_enq(queue, &element);
 
-    assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
-    assert(BlockingQueue_deq(queue) == actual);
+    result = pthread_join(thread, NULL);
+    assert(result == 0);
+    assert(BlockingQueue_isEmpty(queue) == true);
+    free(element);
 
     return TEST_SUCCESS;
 }
 
 /*
- * Checks that blocking waits for space in the queue before adding additional elements.
+ * Helper function for testEnqBlocking. Makes use of thread.
  */
-int enqAll() {
+void *enqBlocking(void *arg) {
+    queue = (BlockingQueue *) arg;
+    int* element = malloc(sizeof(int));
+    *element = 1;
+    BlockingQueue_enq(queue, &element);
+    free(element);
+    return (void *) TEST_SUCCESS;
+}
+
+/*
+ * Checks that blocking waits for element to be removed before adding additional elements.
+ */
+int testEnqBlocking() {
     for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
-        assert(BlockingQueue_enq(queue, (void *) &i) == true);
+        int* element = malloc(sizeof(int));
+        *element = i;
+        assert(BlockingQueue_enq(queue, (void *) element) == true);
+        free(element);
     }
 
-    BlockingQueue_enq(queue, (void *) 2);
+    pthread_t thread;
+    int result = pthread_create(&thread, NULL, enqBlocking, (void *) queue);
+    assert(result == 0);
+
+    BlockingQueue_deq(queue);
+    usleep(100);
+
+    result = pthread_join(thread, NULL);
+    assert(result == 0);
     assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
-
-    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
-        BlockingQueue_deq(queue);
-    }
-
-    BlockingQueue_enq(queue, (void *) 2);
-    assert(BlockingQueue_size(queue) == 1);
-    assert(BlockingQueue_deq(queue) == (void *) 2);
 
     return TEST_SUCCESS;
 }
@@ -297,7 +323,6 @@ int queueClear() {
 
     BlockingQueue_clear(queue);
     assert(BlockingQueue_size(queue) == 0);
-    assert(BlockingQueue_deq(queue) == NULL);
 
     return TEST_SUCCESS;
 }
@@ -313,11 +338,9 @@ int queueClearEmpty() {
 
     BlockingQueue_clear(queue);
     assert(BlockingQueue_size(queue) == 0);
-    assert(BlockingQueue_deq(queue) == NULL);
 
     BlockingQueue_clear(queue);
     assert(BlockingQueue_size(queue) == 0);
-    assert(BlockingQueue_deq(queue) == NULL);
 
     return TEST_SUCCESS;
 }
@@ -393,7 +416,8 @@ int concurrentThreadMultipleDeq() {
         pthread_join(threads[i], NULL);
     }
 
-    assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
+    assert(BlockingQueue_size(queue) == 0);
+    assert(BlockingQueue_isEmpty(queue) == true);
 
     return TEST_SUCCESS;
 }
@@ -416,8 +440,8 @@ int main() {
     runTest(testEnqAndDeqOneElement);
     runTest(testEnqTwoAndDeqAndEnq);
     runTest(testEnqAlldeqAll);
-    runTest(deqAll);
-    runTest(enqAll);
+    runTest(testDeqBlocking);
+    runTest(testEnqBlocking);
     runTest(queueEmpty);
     runTest(queueClear);
     runTest(queueClearEmpty);
