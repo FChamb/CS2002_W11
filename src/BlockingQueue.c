@@ -70,7 +70,7 @@ void* BlockingQueue_deq(BlockingQueue* this) {
         }
         this->size--;
     } else {
-        data = NULL; // Queue is empty
+        data = NULL;
     }
 
     pthread_mutex_unlock(&(this->mutex));
@@ -80,11 +80,17 @@ void* BlockingQueue_deq(BlockingQueue* this) {
 }
 
 int BlockingQueue_size(BlockingQueue* this) {
-    return this->size;
+    pthread_mutex_lock(&(this->mutex));
+    int size = this->size;
+    pthread_mutex_unlock(&(this->mutex));
+    return size;
 }
 
 bool BlockingQueue_isEmpty(BlockingQueue* this) {
-    return this->size == 0;
+    pthread_mutex_lock(&(this->mutex));
+    bool empty = (this->size == 0);
+    pthread_mutex_unlock(&(this->mutex));
+    return empty;
 }
 
 void BlockingQueue_clear(BlockingQueue* this) {

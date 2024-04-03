@@ -92,73 +92,145 @@ int newQueueSizeZero() {
 }
 
 /*
+ * Helper function for testEnqOneElement. Makes use of thread.
+ */
+void *enqOneElement(void *arg) {
+    queue = (BlockingQueue *) arg;
+    int* element = malloc(sizeof(int));
+    *element = 1;
+    assert(BlockingQueue_enq(queue, element) == true);
+
+    return (void *) TEST_SUCCESS;
+}
+
+/*
  * Checks that enqueue adds only one value.
  */
-int enqOneElement() {
-    BlockingQueue_enq(queue, (void*) 1);
+int testEnqOneElement() {
+    pthread_t thread;
+    pthread_create(&thread, NULL, enqOneElement, (void *) queue);
+    pthread_join(thread, NULL);
     assert(BlockingQueue_size(queue) == 1);
-
     return TEST_SUCCESS;
+}
+
+/*
+ * Helper function for testEnqNullElement. Makes use of thread.
+ */
+void *enqNullElement(void *arg) {
+    queue = (BlockingQueue *) arg;
+    assert(BlockingQueue_enq(queue, NULL) == false);
+
+    return (void *) TEST_SUCCESS;
 }
 
 /*
  * Checks that enqueueing a NULL element returns false.
  */
-int enqNullElement() {
-    assert(BlockingQueue_enq(queue, NULL) == false);
+int testEnqNullElement() {
+    pthread_t thread;
+    pthread_create(&thread, NULL, enqNullElement, (void *) queue);
+    pthread_join(thread, NULL);
     assert(BlockingQueue_size(queue) == 0);
-
     return TEST_SUCCESS;
+}
+
+/*
+ * Helper function for testEnqAndDeqOneElement. Makes use of thread.
+ */
+void *enqAndDeqOneElement(void *arg) {
+    queue = (BlockingQueue *) arg;
+    int* element = malloc(sizeof(int));
+    *element = 1;
+    BlockingQueue_enq(queue, &element);
+    assert(BlockingQueue_size(queue) == 1);
+
+    assert(BlockingQueue_deq(queue) == &element);
+    free(element);
+
+    return (void *) TEST_SUCCESS;
 }
 
 /*
  * Checks that enqueue and dequeue only add and remove the correct value and that size is valid.
  */
-int enqAndDeqOneElement() {
-    BlockingQueue_enq(queue, (void *) 1);
-    assert(BlockingQueue_size(queue) == 1);
-
-    assert(BlockingQueue_deq(queue) == (void *) 1);
+int testEnqAndDeqOneElement() {
+    pthread_t thread;
+    pthread_create(&thread, NULL, enqAndDeqOneElement, (void *) queue);
+    pthread_join(thread, NULL);
     assert(BlockingQueue_size(queue) == 0);
-
     return TEST_SUCCESS;
+}
+
+/*
+ * Helper function for testEnqTwoAndDeqAndEnq. Makes use of thread.
+ */
+void *enqTwoAndDeqAndEnq(void *arg) {
+    queue = (BlockingQueue *) arg;
+    int* element = malloc(sizeof(int));
+    *element = 1;
+    int* element2 = malloc(sizeof(int));
+    *element2 = 2;
+    int* element3 = malloc(sizeof(int));
+    *element3 = 1;
+    BlockingQueue_enq(queue, &element);
+    BlockingQueue_enq(queue, &element2);
+    assert(BlockingQueue_size(queue) == 2);
+
+    assert(BlockingQueue_deq(queue) == &element);
+    free(element);
+    BlockingQueue_enq(queue, &element3);
+    assert(BlockingQueue_size(queue) == 2);
+
+    assert(BlockingQueue_deq(queue) == &element2);
+    assert(BlockingQueue_deq(queue) == &element3);
+    free(element2);
+    free(element3);
+
+    return (void *) TEST_SUCCESS;
 }
 
 /*
  * Check that enqueue adds two elements, dequeue removes and item and enqueue adds one more.
  */
-int enqTwoAndDeqAndEnq() {
-    BlockingQueue_enq(queue, (void *) 1);
-    BlockingQueue_enq(queue, (void *) 2);
-    assert(BlockingQueue_size(queue) == 2);
-
-    assert(BlockingQueue_deq(queue) == (void *) 1);
-    BlockingQueue_enq(queue, (void *) 3);
-    assert(BlockingQueue_size(queue) == 2);
-
-    assert(BlockingQueue_deq(queue) == (void *) 2);
-    assert(BlockingQueue_deq(queue) == (void *) 3);
-
+int testEnqTwoAndDeqAndEnq() {
+    pthread_t thread;
+    pthread_create(&thread, NULL, enqTwoAndDeqAndEnq, (void *) queue);
+    pthread_join(thread, NULL);
+    assert(BlockingQueue_size(queue) == 0);
     return TEST_SUCCESS;
+}
+
+/*
+ * Helper function for testEnqAlldeqAll. Makes use of thread.
+ */
+void *enqAlldeqAll(void *arg) {
+    void **array[DEFAULT_MAX_QUEUE_SIZE];
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
+        int* element = malloc(sizeof(int));
+        *element = i;
+        array[i - 1] = (void *) element;
+        assert(BlockingQueue_enq(queue, (void *) element) == true);
+    }
+    assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
+
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
+        void* element = array[i - 1];
+        assert(BlockingQueue_deq(queue) == element);
+        free(element);
+    }
+
+    return (void *) TEST_SUCCESS;
 }
 
 /*
  * Checks that adding several elements to a queue also dequeues the correct results.
  */
-int enqAlldeqAll() {
-    void **array[DEFAULT_MAX_QUEUE_SIZE];
-    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
-        array[i - 1] = (void *) &i;
-        assert(BlockingQueue_enq(queue, (void *) &i) == true);
-    }
-    assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
-
-    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
-        void* val = array[i - 1];
-        assert(BlockingQueue_deq(queue) == val);
-    }
+int testEnqAlldeqAll() {
+    pthread_t thread;
+    pthread_create(&thread, NULL, enqAlldeqAll, (void *) queue);
+    pthread_join(thread, NULL);
     assert(BlockingQueue_size(queue) == 0);
-
     return TEST_SUCCESS;
 }
 
@@ -206,13 +278,60 @@ int enqAll() {
 }
 
 /*
+ * Checks that return result of Queue_isEmpty is correct.
+ */
+int queueEmpty() {
+    assert(BlockingQueue_isEmpty(queue) == true);
+
+    return TEST_SUCCESS;
+}
+
+/*
+ * Checks that queue is cleared when Queue_clear is called.
+ */
+int queueClear() {
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
+        assert(BlockingQueue_enq(queue, (void *) &i) == true);
+    }
+    assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
+
+    BlockingQueue_clear(queue);
+    assert(BlockingQueue_size(queue) == 0);
+    assert(BlockingQueue_deq(queue) == NULL);
+
+    return TEST_SUCCESS;
+}
+
+/*
+ * Checks that clearing an empty queue provides an empty queue.
+ */
+int queueClearEmpty() {
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
+        assert(BlockingQueue_enq(queue, (void *) &i) == true);
+    }
+    assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
+
+    BlockingQueue_clear(queue);
+    assert(BlockingQueue_size(queue) == 0);
+    assert(BlockingQueue_deq(queue) == NULL);
+
+    BlockingQueue_clear(queue);
+    assert(BlockingQueue_size(queue) == 0);
+    assert(BlockingQueue_deq(queue) == NULL);
+
+    return TEST_SUCCESS;
+}
+
+/*
  * Helper function for what the threads should do in concurrentThreadMultiple.
  * Add values to the queue.
  */
 void *threadEnqFunction(void *arg) {
     queue = (BlockingQueue *) arg;
     for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
-        assert(BlockingQueue_enq(queue, (void *) (intptr_t) i));
+        int* element = malloc(sizeof(int));
+        *element = i;
+        assert(BlockingQueue_enq(queue, element));
     }
     pthread_exit(NULL);
 }
@@ -224,8 +343,12 @@ void *threadEnqFunction(void *arg) {
 void *threadDeqFunction(void *arg) {
     queue = (BlockingQueue *) arg;
     for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
-        assert((intptr_t) BlockingQueue_deq(queue) == i);
+        int* element = (int*) BlockingQueue_deq(queue);
+        if (element != NULL) {
+            free(element);
+        }
     }
+    pthread_exit(NULL);
 }
 
 /*
@@ -233,7 +356,6 @@ void *threadDeqFunction(void *arg) {
  */
 int concurrentThreadMultipleEnq() {
     pthread_t threads[NUM_THREADS];
-    void* thread_return[NUM_THREADS];
     for (int i = 0; i < NUM_THREADS; i++) {
         if (i % 2 == 0) {
             pthread_create(&threads[i], NULL, threadEnqFunction, (void *) queue);
@@ -244,10 +366,11 @@ int concurrentThreadMultipleEnq() {
     }
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        pthread_join(threads[i], (void *) &thread_return[i]);
+        pthread_join(threads[i], NULL);
     }
 
-    assert(BlockingQueue_isEmpty(queue));
+    int size = BlockingQueue_size(queue);
+    assert(size == 0);
 
     return TEST_SUCCESS;
 }
@@ -257,7 +380,6 @@ int concurrentThreadMultipleEnq() {
  */
 int concurrentThreadMultipleDeq() {
     pthread_t threads[NUM_THREADS];
-    void* thread_return[NUM_THREADS];
     for (int i = 0; i < NUM_THREADS; i++) {
         if (i % 2 == 0) {
             pthread_create(&threads[i], NULL, threadDeqFunction, (void *) queue);
@@ -268,7 +390,7 @@ int concurrentThreadMultipleDeq() {
     }
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        pthread_join(threads[i], (void *) &thread_return[i]);
+        pthread_join(threads[i], NULL);
     }
 
     assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
@@ -289,13 +411,16 @@ int concurrentThreadMultipleDeq() {
 int main() {
     runTest(newQueueIsNotNull);
     runTest(newQueueSizeZero);
-    runTest(enqOneElement);
-    runTest(enqNullElement);
-    runTest(enqAndDeqOneElement);
-    runTest(enqTwoAndDeqAndEnq);
-    runTest(enqAlldeqAll);
+    runTest(testEnqOneElement);
+    runTest(testEnqNullElement);
+    runTest(testEnqAndDeqOneElement);
+    runTest(testEnqTwoAndDeqAndEnq);
+    runTest(testEnqAlldeqAll);
     runTest(deqAll);
     runTest(enqAll);
+    runTest(queueEmpty);
+    runTest(queueClear);
+    runTest(queueClearEmpty);
     runTest(concurrentThreadMultipleEnq);
     runTest(concurrentThreadMultipleDeq);
     /*
