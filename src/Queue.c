@@ -19,11 +19,13 @@
 Queue *new_Queue(int max_size) {
     Queue* queue = (Queue*) malloc(sizeof(Queue));
     if (queue == NULL) {
+        free(queue);
         return NULL;
     }
 
     queue->array = malloc(sizeof(void*) * max_size);
     if (queue->array == NULL) {
+        free(queue->array);
         return NULL;
     }
 

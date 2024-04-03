@@ -252,11 +252,11 @@ int testDeqBlocking() {
     pthread_t thread;
     int result = pthread_create(&thread, NULL, deqBlocking, (void *) queue);
     assert(result == 0);
-    usleep(100);
 
     int* element = malloc(sizeof(int));
     *element = 1;
     BlockingQueue_enq(queue, &element);
+    usleep(100);
 
     result = pthread_join(thread, NULL);
     assert(result == 0);
@@ -299,6 +299,74 @@ int testEnqBlocking() {
     result = pthread_join(thread, NULL);
     assert(result == 0);
     assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
+
+    return TEST_SUCCESS;
+}
+
+/*
+ * Helper function for testEnqAll. Makes use of thread.
+ */
+void *enqAll(void *arg) {
+    queue = (BlockingQueue *) arg;
+    int* element = malloc(sizeof(int));
+    *element = 1;
+    BlockingQueue_enq(queue, &element);
+    free(element);
+    return (void *) TEST_SUCCESS;
+}
+
+/*
+ * Checks that blocking waits when queue is full.
+ */
+int testEnqAll() {
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
+        int* element = malloc(sizeof(int));
+        *element = i;
+        assert(BlockingQueue_enq(queue, (void *) element) == true);
+        free(element);
+    }
+
+    pthread_t thread;
+    int result = pthread_create(&thread, NULL, enqAll, (void *) queue);
+    assert(result == 0);
+
+    result = pthread_join(thread, NULL);
+    assert(result == 0);
+    assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
+
+    return TEST_SUCCESS;
+}
+
+/*
+ * Helper function for testDeqBlocking. Makes use of thread.
+ */
+void *deqAll(void *arg) {
+    queue = (BlockingQueue *) arg;
+    BlockingQueue_deq(queue);
+    return (void *) TEST_SUCCESS;
+}
+
+/*
+ * Checks that blocking waits for element to be added before removing additional elements.
+ */
+int testDeqAll() {
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
+        int* element = malloc(sizeof(int));
+        *element = i;
+        assert(BlockingQueue_enq(queue, (void *) element) == true);
+        free(element);
+    }
+    for (int i = 1; i <= DEFAULT_MAX_QUEUE_SIZE; i++) {
+        BlockingQueue_deq(queue);
+    }
+
+    pthread_t thread;
+    int result = pthread_create(&thread, NULL, deqAll, (void *) queue);
+    assert(result == 0);
+
+    result = pthread_join(thread, NULL);
+    assert(result == 0);
+    assert(BlockingQueue_size(queue) == 0);
 
     return TEST_SUCCESS;
 }
@@ -392,8 +460,8 @@ int concurrentThreadMultipleEnq() {
         pthread_join(threads[i], NULL);
     }
 
-    int size = BlockingQueue_size(queue);
-    assert(size == 0);
+    assert(BlockingQueue_size(queue) == 0);
+    assert(BlockingQueue_isEmpty(queue) == true);
 
     return TEST_SUCCESS;
 }
@@ -416,8 +484,8 @@ int concurrentThreadMultipleDeq() {
         pthread_join(threads[i], NULL);
     }
 
-    assert(BlockingQueue_size(queue) == 0);
-    assert(BlockingQueue_isEmpty(queue) == true);
+    assert(BlockingQueue_size(queue) == DEFAULT_MAX_QUEUE_SIZE);
+    assert(BlockingQueue_isEmpty(queue) == false);
 
     return TEST_SUCCESS;
 }
@@ -442,6 +510,8 @@ int main() {
     runTest(testEnqAlldeqAll);
     runTest(testDeqBlocking);
     runTest(testEnqBlocking);
+    runTest(testEnqAll);
+    runTest(testDeqAll);
     runTest(queueEmpty);
     runTest(queueClear);
     runTest(queueClearEmpty);
