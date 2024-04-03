@@ -49,10 +49,8 @@ bool BlockingQueue_enq(BlockingQueue* this, void* element) {
     sem_wait(&(this->empty));
     pthread_mutex_lock(&(this->mutex));
 
-    if (this->size < this->maxSize) {
-        this->array[this->size] = element;
-        this->size++;
-    }
+    this->array[this->size] = element;
+    this->size++;
 
     pthread_mutex_unlock(&(this->mutex));
     sem_post(&(this->full));
@@ -65,13 +63,11 @@ void* BlockingQueue_deq(BlockingQueue* this) {
     sem_wait(&(this->full));
     pthread_mutex_lock(&(this->mutex));
 
-    if (this->size != 0) {
-        data = this->array[0];
-        for (int i = 1; i < this->size; i++) {
-            this->array[i - 1] = this->array[i];
-        }
-        this->size--;
+    data = this->array[0];
+    for (int i = 1; i < this->size; i++) {
+        this->array[i - 1] = this->array[i];
     }
+    this->size--;
 
     pthread_mutex_unlock(&(this->mutex));
     sem_post(&(this->empty));
