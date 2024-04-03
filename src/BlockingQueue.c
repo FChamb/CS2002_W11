@@ -46,7 +46,7 @@ bool BlockingQueue_enq(BlockingQueue* this, void* element) {
         return false;
     }
 
-    sem_wait(&(this->full));
+    sem_wait(&(this->empty));
     pthread_mutex_lock(&(this->mutex));
 
     if (this->size < this->maxSize) {
@@ -55,14 +55,14 @@ bool BlockingQueue_enq(BlockingQueue* this, void* element) {
     }
 
     pthread_mutex_unlock(&(this->mutex));
-    sem_post(&(this->empty));
+    sem_post(&(this->full));
 
     return true;
 }
 
 void* BlockingQueue_deq(BlockingQueue* this) {
     void* data = NULL;
-    sem_wait(&(this->empty));
+    sem_wait(&(this->full));
     pthread_mutex_lock(&(this->mutex));
 
     if (this->size != 0) {
@@ -74,7 +74,7 @@ void* BlockingQueue_deq(BlockingQueue* this) {
     }
 
     pthread_mutex_unlock(&(this->mutex));
-    sem_post(&(this->full));
+    sem_post(&(this->empty));
 
     return data;
 }
