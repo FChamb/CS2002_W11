@@ -13,7 +13,7 @@ This project directory consists of a complete and specification accurate impleme
     ```
 3. Run the make command
     ```console
-    cd path/to/directory/CS2002_W11/src
+    make all
     ```
 4. Run Test Queue
     ```console
